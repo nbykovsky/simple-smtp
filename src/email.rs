@@ -11,16 +11,16 @@ enum State {
 }
 
 pub struct Mail {
-    hello: Option<String>,
-    mail_from: Option<String>,
-    rcpt_to: Vec<String>,
-    data: Option<String>,
+    pub helo: Option<String>,
+    pub mail_from: Option<String>,
+    pub rcpt_to: Vec<String>,
+    pub data: Option<String>,
 }
 
 impl Mail {
     pub fn new() -> Mail {
         Mail {
-            hello: None,
+            helo: None,
             mail_from: None,
             rcpt_to: Vec::new(),
             data: None,
@@ -28,7 +28,7 @@ impl Mail {
     }
 
     fn add_hello(&mut self, hello: &str) {
-        self.hello = Some(String::from(hello.trim()));
+        self.helo = Some(String::from(hello.trim()));
     }
 
     fn add_mail_from(&mut self, mail_from: &str) {
@@ -52,7 +52,7 @@ impl Display for Mail {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut output = String::new();
 
-        if let Some(helo) = &self.hello {
+        if let Some(helo) = &self.helo {
             output.push_str(&format!("HELO {}\n", helo));
         }
 
@@ -135,5 +135,25 @@ impl MailFSM {
 
     pub fn is_finished(&self) -> bool {
         self.current_state == State::Quit
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mail() {
+        let mut mail = Mail::new();
+        mail.add_hello("server");
+        assert_eq!(mail.helo, Some(String::from("server")));
+        mail.add_mail_from("some@email");
+        assert_eq!(mail.mail_from, Some(String::from("some@email")));
+        mail.add_rcpt_to("email@some");
+        mail.add_rcpt_to("email1@some");
+        assert_eq!(mail.rcpt_to, vec!["email@some", "email1@some"]);
+        mail.add_data_chunk("abc");
+        mail.add_data_chunk("def");
+        assert_eq!(mail.data, Some(String::from("abcdef")));
     }
 }
