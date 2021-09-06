@@ -10,7 +10,7 @@ pub mod email;
 pub fn handle_connection(stream: TcpStream) {
     let mut reader = BufReader::new(&stream);
     let mut writer = BufWriter::new(&stream);
-    let mut mail_fsm = MailFSM::new();
+    let mut mail_fsm = MailFSM::new(String::from("my.server"));
 
     loop {
         let mut buf = String::new();

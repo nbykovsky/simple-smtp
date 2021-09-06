@@ -74,6 +74,7 @@ impl Display for Mail {
 
 pub struct MailFSM {
     current_state: State,
+    server_name: String,
     pub mail: Mail,
 }
 
@@ -85,9 +86,10 @@ const QUIT: &str = "QUIT";
 const DOT: &str = ".";
 
 impl MailFSM {
-    pub fn new() -> MailFSM {
+    pub fn new(server_name: String) -> MailFSM {
         MailFSM {
             current_state: State::New,
+            server_name,
             mail: Mail::new(),
         }
     }
@@ -97,9 +99,7 @@ impl MailFSM {
             State::New if line.trim().starts_with(HELO) => {
                 self.mail.add_hello(&line.trim()[HELO.len()..]);
                 self.current_state = State::Hello;
-                Some(String::from(
-                    "250 smtp.example.com, I am glad to meet you\n",
-                ))
+                Some(format!("250 {}\n", self.server_name))
             }
             State::Hello if line.trim().starts_with(MAIL_FROM) => {
                 self.mail.add_mail_from(&line.trim()[MAIL_FROM.len()..]);
@@ -120,7 +120,10 @@ impl MailFSM {
                 self.current_state = State::Data;
                 Some(String::from("354 End data with <CR><LF>.<CR><LF>\n"))
             }
-            State::Data if line.trim() == DOT => Some(String::from("250 Ok: queued as 12345\n")),
+            State::Data if line.trim() == DOT => Some(format!(
+                "250 Ok: queued as {}\n",
+                self.mail.data.as_ref().unwrap_or(&String::from("")).len()
+            )),
             State::Data if line.trim().starts_with(QUIT) => {
                 self.current_state = State::Quit;
                 Some(String::from("221 Bye\n"))
@@ -155,5 +158,19 @@ mod tests {
         mail.add_data_chunk("abc");
         mail.add_data_chunk("def");
         assert_eq!(mail.data, Some(String::from("abcdef")));
+    }
+
+    #[test]
+    fn test_mail_fsm() {
+        let mut mail_fsm = MailFSM::new(String::from("test.server"));
+        assert_eq!(mail_fsm.process_line("HELO server\n"), Some(String::from("250 test.server\n")));
+        assert_eq!(mail_fsm.process_line("MAIL FROM: sender@email\n"), Some(String::from("250 Ok\n")));
+        assert_eq!(mail_fsm.process_line("RCPT TO: rcpt1@email\n"), Some(String::from("250 Ok\n")));
+        assert_eq!(mail_fsm.process_line("RCPT TO: rcpt2@email\n"), Some(String::from("250 Ok\n")));
+        assert_eq!(mail_fsm.process_line("DATA\n"), Some(String::from("354 End data with <CR><LF>.<CR><LF>\n")));
+        assert_eq!(mail_fsm.process_line("qwert\n"), None);
+        assert_eq!(mail_fsm.process_line(".\n"), Some(String::from("250 Ok: queued as 6\n")));
+        assert_eq!(mail_fsm.process_line("QUIT\n"), Some(String::from("221 Bye\n")));
+        assert!(mail_fsm.is_finished())
     }
 }
