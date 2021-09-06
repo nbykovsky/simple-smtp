@@ -1,9 +1,11 @@
-use std::{io::{BufRead, BufReader, BufWriter, Write}, net::TcpStream};
+use std::{
+    io::{BufRead, BufReader, BufWriter, Write},
+    net::TcpStream,
+};
 
 use email::MailFSM;
 
 pub mod email;
-
 
 pub fn handle_connection(stream: TcpStream) {
     let mut reader = BufReader::new(&stream);

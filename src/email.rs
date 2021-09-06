@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-
 #[derive(PartialEq)]
 enum State {
     New,
