@@ -79,6 +79,7 @@ pub struct MailFSM {
 }
 
 const HELO: &str = "HELO";
+const EHLO: &str = "EHLO";
 const MAIL_FROM: &str = "MAIL FROM:";
 const RCPT_TO: &str = "RCPT TO:";
 const DATA: &str = "DATA";
@@ -95,27 +96,28 @@ impl MailFSM {
     }
 
     pub fn process_line(&mut self, line: &str) -> Option<String> {
+        let curated_line = line.trim().to_uppercase();
         match &self.current_state {
-            State::New if line.trim().starts_with(HELO) => {
+            State::New if curated_line.starts_with(HELO) || curated_line.starts_with(EHLO) => {
                 self.mail.add_hello(&line.trim()[HELO.len()..]);
                 self.current_state = State::Hello;
                 Some(format!("250 {}\n", self.server_name))
             }
-            State::Hello if line.trim().starts_with(MAIL_FROM) => {
+            State::Hello if curated_line.starts_with(MAIL_FROM) => {
                 self.mail.add_mail_from(&line.trim()[MAIL_FROM.len()..]);
                 self.current_state = State::MailFrom;
                 Some(String::from("250 Ok\n"))
             }
-            State::MailFrom if line.trim().starts_with(RCPT_TO) => {
+            State::MailFrom if curated_line.starts_with(RCPT_TO) => {
                 self.mail.add_rcpt_to(&line.trim()[RCPT_TO.len()..]);
                 self.current_state = State::RcptTo;
                 Some(String::from("250 Ok\n"))
             }
-            State::RcptTo if line.trim().starts_with(RCPT_TO) => {
+            State::RcptTo if curated_line.starts_with(RCPT_TO) => {
                 self.mail.add_rcpt_to(&line.trim()[RCPT_TO.len()..]);
                 Some(String::from("250 Ok\n"))
             }
-            State::RcptTo if line.trim().starts_with(DATA) => {
+            State::RcptTo if curated_line.starts_with(DATA) => {
                 self.mail.add_rcpt_to(&line.trim()[DATA.len()..]);
                 self.current_state = State::Data;
                 Some(String::from("354 End data with <CR><LF>.<CR><LF>\n"))
@@ -124,7 +126,7 @@ impl MailFSM {
                 "250 Ok: queued as {}\n",
                 self.mail.data.as_ref().unwrap_or(&String::from("")).len()
             )),
-            State::Data if line.trim().starts_with(QUIT) => {
+            State::Data if curated_line.starts_with(QUIT) => {
                 self.current_state = State::Quit;
                 Some(String::from("221 Bye\n"))
             }
@@ -138,6 +140,10 @@ impl MailFSM {
 
     pub fn is_finished(&self) -> bool {
         self.current_state == State::Quit
+    }
+
+    pub fn greeting(&self) -> String {
+        String::from(format!("220 {} simple-smtp\n", self.server_name))
     }
 }
 
