@@ -169,14 +169,35 @@ mod tests {
     #[test]
     fn test_mail_fsm() {
         let mut mail_fsm = MailFSM::new(String::from("test.server"));
-        assert_eq!(mail_fsm.process_line("HELO server\n"), Some(String::from("250 test.server\n")));
-        assert_eq!(mail_fsm.process_line("MAIL FROM: sender@email\n"), Some(String::from("250 Ok\n")));
-        assert_eq!(mail_fsm.process_line("RCPT TO: rcpt1@email\n"), Some(String::from("250 Ok\n")));
-        assert_eq!(mail_fsm.process_line("RCPT TO: rcpt2@email\n"), Some(String::from("250 Ok\n")));
-        assert_eq!(mail_fsm.process_line("DATA\n"), Some(String::from("354 End data with <CR><LF>.<CR><LF>\n")));
+        assert_eq!(
+            mail_fsm.process_line("HELO server\n"),
+            Some(String::from("250 test.server\n"))
+        );
+        assert_eq!(
+            mail_fsm.process_line("MAIL FROM: sender@email\n"),
+            Some(String::from("250 Ok\n"))
+        );
+        assert_eq!(
+            mail_fsm.process_line("RCPT TO: rcpt1@email\n"),
+            Some(String::from("250 Ok\n"))
+        );
+        assert_eq!(
+            mail_fsm.process_line("RCPT TO: rcpt2@email\n"),
+            Some(String::from("250 Ok\n"))
+        );
+        assert_eq!(
+            mail_fsm.process_line("DATA\n"),
+            Some(String::from("354 End data with <CR><LF>.<CR><LF>\n"))
+        );
         assert_eq!(mail_fsm.process_line("qwert\n"), None);
-        assert_eq!(mail_fsm.process_line(".\n"), Some(String::from("250 Ok: queued as 6\n")));
-        assert_eq!(mail_fsm.process_line("QUIT\n"), Some(String::from("221 Bye\n")));
+        assert_eq!(
+            mail_fsm.process_line(".\n"),
+            Some(String::from("250 Ok: queued as 6\n"))
+        );
+        assert_eq!(
+            mail_fsm.process_line("QUIT\n"),
+            Some(String::from("221 Bye\n"))
+        );
         assert!(mail_fsm.is_finished())
     }
 }

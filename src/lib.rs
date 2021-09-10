@@ -3,14 +3,13 @@ use std::{
     net::TcpStream,
 };
 
-use email::MailFSM;
-
 pub mod email;
+pub mod thread_pool;
 
 pub fn handle_connection(stream: TcpStream) {
     let mut reader = BufReader::new(&stream);
     let mut writer = BufWriter::new(&stream);
-    let mut mail_fsm = MailFSM::new(String::from("my.server"));
+    let mut mail_fsm = email::MailFSM::new(String::from("my.server"));
 
     writer.write(&mail_fsm.greeting().as_bytes()[..]).unwrap();
     writer.flush().unwrap();
